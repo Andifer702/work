@@ -1,0 +1,163 @@
+<!doctype html>
+<html><head>
+<meta charset="UTF-8">
+<title>PNC Checking Options</title>
+
+<script type='text/javascript' src="js/jquery-1.9.1.min.js"></script>
+
+<!-- ATM FEE CHECKER SCRIPTS -->
+<style>
+
+	#atm-container .zipcode-txt { color: #929292; font-size: 10px; padding: 10px 0 0; }
+	#atm-container { height: 480px; width:640px; color:#666; background-color:#fff; color: #444; font-size:12px; padding:0px; margin: 0px auto; font-family: arial, helvetica, sans-serif; }
+	#atm-container h1.blueHeader { color: #0069AA; font-size: 18px; margin: 12px 0; font-weight:bold; }
+	#atm-container h1.orangeHeader { color: #F58025; font-size: 24px; margin:16px 0px; font-weight:bold; }
+	#atm-container .fLeft { float:left; }
+	#atm-container .hContent { display: none; }
+	#atm-container .atmTXT14 { font-size:14px; }
+	#atm-container .atmTXT16 { font-size:16px; }
+	#atm-container .gBlock { padding: 10px 20px 20px 20px; background-color:#f2f2f2; } 
+	#atm-container #errorContent { color:#ff0000; font-size:14px; }
+	#atm-container .zip-input {	float:right; }
+
+</style>
+<script type='text/javascript'>
+
+// CREATE VARIABLE INSTANCES //
+var zipcodedata = [];
+var marketdata = '';
+// LOCATION OF DATA FILES //
+var strZipCodeFile = 'atm-service-zips.txt';
+var strMarketsFile = 'atm-service-markets.xml';
+
+// LOCATION OF PDF ASSETS //
+var strPDFFileThick = 'https://www.pnc.com/content/dam/pnc-com/pdf/personal/Checking/summary-performance-checking-a.pdf';
+var strPDFFileThin = 'https://www.pnc.com/content/dam/pnc-com/pdf/personal/Checking/summary-performance-checking-b.pdf';
+
+$(document).ready(function(){
+	// LOAD DATA //
+	getData();
+})
+.on("submit", "#pnc_zipcode", function(){
+	// ON SUBMIT //
+	checkZip();
+	return false;
+});
+
+function getData(){
+	// LOAD ZIP CODE DATA	
+	$.get(strZipCodeFile, function(data){
+		zipcodedata = data.split("\n");
+	});
+	// LOAD MARKET DATA	
+	$.get(strMarketsFile, function(data){
+		marketdata = $(data).find('market').text();
+	});
+}
+
+function isNonEmptyNumber(str) {
+  if(!str.length) return false;
+  var num = +str;
+  return isFinite(num) && !isNaN(num);
+}
+
+function checkZip(){
+	// INITIAL VARIABLES
+	var found = 0;
+	var targetname = '';
+	var thisrow = [];
+	var ziprow = [];
+	var searchresult = '';
+	var searchTerm = $.trim($("#zip").val());
+	// RESET INFORMATION //
+	$('#errorContent').css('display','none');	
+	// CHECK ALL 5 DIGITS //
+	if(searchTerm.length!=5 || $.isNumeric(searchTerm)!=true){
+		$("#errorContent").fadeIn('slow', function () {
+			$("#errorContent").slideDown('slow');
+		});		
+		return false;	
+	}
+	microsearchTerm = searchTerm.substr(0, 3);
+	// LOOP CHECKER //
+	for (var i=0;i<zipcodedata.length;i++){
+		thisrow = [];
+		// IF DATA ALIGNS //
+		if(zipcodedata[i]){
+			thisrow = zipcodedata[i].split('=');
+			// PARSE MARKET //
+			if(thisrow.length > 1){
+				ziprow = thisrow[1].split(',');
+				// LOOP ZIP CODE AND SPLIT ON DELIMITER //
+				for (var xi=0;xi<thisrow[1].length;xi++){
+					// IF ITEM TRUE //
+					if(ziprow[xi]){
+						// SEARCH BASED ON LENGTH //
+						targetzipcode = ziprow[xi].replace(/(?:(?:^|\n)\s+|\s+(?:$|\n))/g,'').replace(/\s+/g,' ');
+						if(targetzipcode.length == 5){
+							if(targetzipcode === searchTerm){
+								found = 1;
+							}
+						} else if(targetzipcode.length == 3){
+							if(targetzipcode === microsearchTerm){
+								found = 1;
+							}
+						}
+						// ZIP CODE FOUND //
+						if(found == 1){
+							// RETURN & SHOW RESULTS //
+							$("#returnzipdata").html('Location: '+thisrow[0]);
+							// DETERMINE MARKET //
+							targetname = thisrow[0];
+							searchMarketFinal = new RegExp(targetname, 'gi');
+							searchMarketresult = marketdata.search(searchMarketFinal);
+							if(searchMarketresult > -1){
+								document.location.href = strPDFFileThin;
+							} else {
+								document.location.href = strPDFFileThick;
+							}
+							return true;
+						}
+					}
+				}
+			} 
+		}
+	}
+	if(found == 0){
+		document.location.href = strPDFFileThick;
+	}
+}
+
+</script>
+<!-- ATM FEE CHECKER SCRIPTS END -->
+<script src="//assets.adobedtm.com/1d90950c926aacaf003e1e8e48aeb1189d4d7901/satelliteLib-32acb09acb2591af3d6608d6f545ca8799bdc5e1.js"></script>
+</head>
+<body>
+
+<br><br>
+
+<!-- ATM CHECKER CONTAINER -->
+<div id="atm-container">
+	<img src="images/pnc-logo.jpg" width="146" height="60" alt="PNC">
+    <h1 class="orangeHeader">PNC Performance Checking</h1>
+	<p class="clr"></p>
+	Enter your zip code below to view the account summary.
+	<p class="clr"></p>
+	<form id="pnc_zipcode" name="pnc_zipcode" method="post" action="#" onSubmit="return false;">    
+    <div id="errorContent" class="hContent" style="padding: 0px 0px 10px 0px;">Please enter a valid 5 digit zip code.</div>
+	<div>
+    	<div class="fLeft atmTXT16"><strong style="float:left;">Zip Code:</strong> <input type="text" name="zip" id="zip" maxlength="5" style="width: 54px; float:left; margin: 0 0 0 5px;" /></div>
+    	<div class="fLeft" style="padding: 0px 0px 0px 10px;"><input type="submit" name="button" id="button" value="Submit" style="cursor: pointer; margin:0px" /></div>        
+	</div>        
+	<br clear="all" />    
+	<p class="clr"></p>
+    <p class="clr"></p>
+	<!--<p class="zipcode-txt">If you have an existing account, enter the zip code for where your account was opened. Reimbursement of fees is based on the location of where your account was opened, not necessarily your current address.</p>-->
+	<p class="clr"></p>
+	<p class="clr"></p>
+	<strong>Member FDIC</strong>	
+</form>
+</div>
+<!-- ATM CHECKER CONTAINER END -->
+<script type="text/javascript">_satellite.pageBottom();</script> 
+</body></html>
